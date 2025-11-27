@@ -1,0 +1,103 @@
+openapi: 3.0.3
+info:
+  title: Webhook Client API
+  description: API para recibir webhooks externos en IT Assets Manager
+  version: 1.0.0
+  contact:
+    name: IT Assets Manager
+
+servers:
+  - url: https://it-assets-manager.test/api
+    description: Local development server
+
+paths:
+  /webhooks/{name}:
+    post:
+      summary: Receive webhook
+      description: Endpoint para recibir webhooks de sistemas externos
+      operationId: receiveWebhook
+      tags:
+        - Webhooks
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Nombre identificador del webhook
+          schema:
+            type: string
+            example: github-events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              example:
+                event: push
+                repository: it-assets-manager
+                timestamp: "2024-01-15T10:30:00Z"
+      responses:
+        '200':
+          description: Webhook recibido correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Webhook processed successfully
+        '400':
+          description: Payload inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Invalid payload format
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+  securitySchemes:
+    webhookSignature:
+      type: apiKey
+      in: header
+      name: X-Webhook-Signature
+      description: HMAC signature del payload para verificación
+
+security:
+  - webhookSignature: []
+
+tags:
+  - name: Webhooks
+    description: Endpoints para recepción de webhooks externos
