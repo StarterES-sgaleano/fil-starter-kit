@@ -53,6 +53,7 @@
 - [ ] T012 Update `config/filament-breezy.php` with 2FA and profile settings
 - [ ] T013 Register `BreezyCore` plugin in `app/Providers/Filament/AdminPanelProvider.php`
 - [ ] T014 Register `FilamentShieldPlugin` in `app/Providers/Filament/AdminPanelProvider.php`
+- [ ] T014b [FR1] Document Shield permission integration pattern in `docs/plugins/shield-integration.md`
 
 ### Foundation Tests
 
@@ -154,6 +155,9 @@
 - [ ] T049 [P] [FR5] Create example `ModalRelationManager` usage in `docs/plugins/modal-relation-usage.md`
 - [ ] T050 [P] [FR5] Document `LayoutManager` configuration in `docs/plugins/layout-manager-usage.md`
 - [ ] T051 [FR5] Verify all utility plugins are auto-discovered by Filament
+- [ ] T051b [FR5] Configure `filament/spatie-laravel-settings-plugin` - publish config and create Settings class
+- [ ] T051c [FR5] Configure `filament/spatie-laravel-tags-plugin` - add `HasTags` trait to models requiring tagging
+- [ ] T051d [FR5] Verify `filament-exceptions`, `advanced-tables`, `support-bubble` auto-register correctly
 
 **Checkpoint**: All utility plugins documented and ready for use
 
@@ -284,15 +288,15 @@ Execute phases sequentially in priority order:
 | Phase | Tasks | Parallel | Priority |
 |-------|-------|----------|----------|
 | 1. Setup | T001-T003 | 2/3 | Required |
-| 2. Foundational | T004-T018 | 2/15 | **CRITICAL** |
+| 2. Foundational | T004-T018 + T014b | 2/16 | **CRITICAL** |
 | 3. FR-2 (API) | T019-T029 | 2/11 | P1 - MVP |
 | 4. FR-4 (UI) | T030-T039 | 4/10 | P2 |
 | 5. FR-3 (Data) | T040-T047 | 2/8 | P3 |
-| 6. FR-5 (Utils) | T048-T051 | 3/4 | P4 |
+| 6. FR-5 (Utils) | T048-T051d | 3/7 | P4 |
 | 7. Polish | T052-T058 | 1/7 | Final |
 
-**Total Tasks**: 58  
-**Parallelizable**: 16 (28%)  
+**Total Tasks**: 62  
+**Parallelizable**: 16 (26%)  
 **Estimated Time**: 4-6 hours (sequential)
 
 ---

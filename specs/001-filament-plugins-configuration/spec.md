@@ -32,21 +32,22 @@ The project has 18 Filament plugins installed via Composer but not yet configure
 ### FR-3: Data Management
 - Configure `filament-excel` for data export
 - Configure `filament-excel-import` for data import
-- Configure `commentions` for model comments with @mentions
+- Configure `Commentions` for model comments with @mentions
 
 ### FR-4: UI Components
 - Configure `filament-apex-charts` for dashboard charts
 - Configure `filament-quick-create` for quick record creation
 - Configure `guava/calendar` for calendar widget
-- Configure `flowforge` for Kanban boards
+- Configure `flowforge` for database-triggered workflows
 - Configure `filament-badgeable-column` for table badges
 - Configure `filament-modal-relation-managers` for modal relations
 - Configure `filament-layout-manager` for customizable dashboards
 
 ### FR-5: Settings & Utilities
-- Configure `spatie-laravel-settings-plugin` for app settings
-- Configure `spatie-laravel-tags-plugin` for tagging
+- Configure `filament/spatie-laravel-settings-plugin` for app settings integration
+- Configure `filament/spatie-laravel-tags-plugin` for tagging functionality
 - Configure theme CSS with all plugin assets
+- Verify `filament-exceptions`, `advanced-tables`, `support-bubble` auto-registration
 
 ## Non-Functional Requirements
 

@@ -46,6 +46,8 @@ app/
 | filament-modal-relation-managers | Modal relations | LOW |
 | filament-layout-manager | Panel layout | LOW |
 | guava/filament-icons | Icons | LOW |
+| spatie-laravel-settings-plugin | App settings | MEDIUM |
+| spatie-laravel-tags-plugin | Tagging | MEDIUM |
 | filament-exceptions | Exception viewer | UTILITY |
 | advanced-tables | Table features | UTILITY |
 | support-bubble | Support widget | UTILITY |
