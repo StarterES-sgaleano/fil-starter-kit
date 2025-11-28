@@ -63,18 +63,15 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->plugins([
                 // Security Layer (FR-1)
                 FilamentShieldPlugin::make(),
                 BreezyCore::make()
+                    ->enableBrowserSessions()
+                    ->enableSanctumTokens()
                     ->myProfile(
-                        shouldRegisterUserMenu: true,
-                        shouldRegisterNavigation: false,
                         hasAvatars: true,
-                        slug: 'my-profile'
-                    )
-                    ->enableTwoFactorAuthentication(
-                        force: false,
                     ),
 
                 // Integration Layer (FR-2)
