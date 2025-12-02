@@ -10,6 +10,7 @@
         "asosick/filament-layout-manager": "^2.0",
         "awcodes/filament-badgeable-column": "^3.0",
         "awcodes/filament-quick-create": "^4.0",
+        "bezhansalleh/filament-language-switch": "^4.0",
         "bezhansalleh/filament-shield": "^4.0",
         "codeat3/blade-fluentui-system-icons": "^1.34",
         "eightynine/filament-excel-import": "^4.0",
@@ -25,10 +26,12 @@
         "laravel/tinker": "^2.10.1",
         "leandrocfe/filament-apex-charts": "^4.0",
         "marjose123/filament-webhook-server": "*",
+        "niladam/filament-auto-logout": "^2.0",
         "pxlrbt/filament-excel": "3.0",
         "relaticle/flowforge": "^2.1",
         "rupadana/filament-api-service": "*",
-        "tapp/filament-webhook-client": "^4.0"
+        "tapp/filament-webhook-client": "^4.0",
+        "yebor974/filament-renew-password": "^3.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

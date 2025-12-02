@@ -29,6 +29,9 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'locale' => 'es',
+            'last_renew_password_at' => now(),
+            'force_renew_password' => false,
         ];
     }
 
@@ -39,6 +42,26 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Indicate that the user has an expired password (older than 90 days).
+     */
+    public function withExpiredPassword(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'last_renew_password_at' => now()->subDays(91),
+        ]);
+    }
+
+    /**
+     * Indicate that the user must renew their password on next login.
+     */
+    public function mustRenewPassword(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'force_renew_password' => true,
         ]);
     }
 }

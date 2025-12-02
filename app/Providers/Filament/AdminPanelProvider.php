@@ -2,30 +2,33 @@
 
 namespace App\Providers\Filament;
 
-use Awcodes\QuickCreate\QuickCreatePlugin;
-use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
-use Filament\Http\Middleware\Authenticate;
-use Filament\Http\Middleware\AuthenticateSession;
-use Filament\Http\Middleware\DisableBladeIconComponents;
-use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
+use Carbon\Carbon;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Pages\Dashboard;
 use Filament\Support\Colors\Color;
+use Guava\Calendar\CalendarPlugin;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
-use Guava\Calendar\CalendarPlugin;
-use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
-use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
-use Illuminate\Routing\Middleware\SubstituteBindings;
-use Illuminate\Session\Middleware\StartSession;
-use Illuminate\View\Middleware\ShareErrorsFromSession;
-use Jeffgreco13\FilamentBreezy\BreezyCore;
-use Leandrocfe\FilamentApexCharts\FilamentApexChartsPlugin;
-use Marjose123\FilamentWebhookServer\WebhookPlugin;
 use Relaticle\Flowforge\FlowforgePlugin;
 use Rupadana\ApiService\ApiServicePlugin;
+use Awcodes\QuickCreate\QuickCreatePlugin;
+use Filament\Http\Middleware\Authenticate;
+use Jeffgreco13\FilamentBreezy\BreezyCore;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Niladam\FilamentAutoLogout\AutoLogoutPlugin;
+use Filament\Http\Middleware\AuthenticateSession;
+use Marjose123\FilamentWebhookServer\WebhookPlugin;
+use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Http\Middleware\DisableBladeIconComponents;
+use Yebor974\Filament\RenewPassword\RenewPasswordPlugin;
+use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Leandrocfe\FilamentApexCharts\FilamentApexChartsPlugin;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -34,7 +37,6 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->path('admin')
             ->login()
             ->colors([
                 'primary' => Color::Amber,
@@ -73,6 +75,15 @@ class AdminPanelProvider extends PanelProvider
                     ->myProfile(
                         hasAvatars: true,
                     ),
+
+                // Auto Logout - 15 minutes timeout with 30-second warning (plugin default)
+                AutoLogoutPlugin::make()
+                    ->logoutAfter(\Carbon\CarbonInterface::SECONDS_PER_MINUTE * 15),
+
+                // Password Renewal - 90 days expiration + admin-forced renewal
+                RenewPasswordPlugin::make()
+                    ->passwordExpiresIn(days: 90)
+                    ->forceRenewPassword(),
 
                 // Integration Layer (FR-2)
                 ApiServicePlugin::make(),
