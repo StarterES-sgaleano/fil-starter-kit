@@ -8,12 +8,12 @@ Este documento detalla las decisiones de configuración para los 18 plugins de F
 
 ### Plugins por Nivel de Configuración
 
-| Nivel | Plugins | Descripción |
-|-------|---------|-------------|
-| **CRÍTICO** | filament-shield, filament-breezy | Requieren configuración obligatoria antes de usar el panel |
-| **ALTO** | filament-api-service, commentions, filament-webhook-client | Requieren migraciones y/o traits en modelos |
-| **MEDIO** | filament-apex-charts, filament-quick-create, guava/calendar, flowforge | Requieren registro en Panel Provider |
-| **BAJO** | Resto de plugins | Solo uso directo sin configuración previa |
+| Nivel       | Plugins                                                                | Descripción                                                |
+| ----------- | ---------------------------------------------------------------------- | ---------------------------------------------------------- |
+| **CRÍTICO** | filament-shield, filament-breezy                                       | Requieren configuración obligatoria antes de usar el panel |
+| **ALTO**    | filament-api-service, commentions, filament-webhook-client             | Requieren migraciones y/o traits en modelos                |
+| **MEDIO**   | filament-apex-charts, filament-quick-create, guava/calendar, flowforge | Requieren registro en Panel Provider                       |
+| **BAJO**    | Resto de plugins                                                       | Solo uso directo sin configuración previa                  |
 
 ---
 
@@ -46,7 +46,7 @@ use Filament\Panel;
 class User extends Authenticatable implements FilamentUser
 {
     use HasRoles;
-    
+
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->hasRole('super_admin') || $this->hasAnyPermission([/* ... */]);
@@ -94,7 +94,7 @@ use Jeffgreco13\FilamentBreezy\Traits\TwoFactorAuthenticatable;
 class User extends Authenticatable
 {
     use TwoFactorAuthenticatable;
-    
+
     // Para avatar personalizado
     public function getFilamentAvatarUrl(): ?string
     {
@@ -338,7 +338,7 @@ php artisan filament:assets
 
 ```css
 @source '../../../../vendor/guava/calendar/resources/**/*';
-@import '../../../../vendor/guava/calendar/resources/css/theme.css';
+@import "../../../../vendor/guava/calendar/resources/css/theme.css";
 ```
 
 **Decisión:** Usar para visualización de mantenimientos programados de assets.
@@ -524,6 +524,174 @@ SpatieTagsInput::make('tags')
 
 ---
 
+## Fase 5: Nuevos Plugins de Seguridad e i18n
+
+### 5.1 filament-auto-logout (niladam/filament-auto-logout)
+
+**Prioridad:** 🟡 MEDIA
+
+**Razón:** Mejora la seguridad cerrando sesiones inactivas automáticamente.
+
+#### Pasos de Configuración:
+
+```bash
+# 1. Instalar paquete
+composer require niladam/filament-auto-logout
+
+# 2. Ejecutar instalador
+php artisan filament-auto-logout:install
+
+# 3. (Opcional) Publicar configuración
+php artisan vendor:publish --tag="filament-auto-logout-config"
+```
+
+#### Registro en AdminPanelProvider:
+
+```php
+use Niladam\FilamentAutoLogout\AutoLogoutPlugin;
+use Carbon\Carbon;
+
+->plugins([
+    AutoLogoutPlugin::make()
+        ->logoutAfter(Carbon::SECONDS_PER_MINUTE * 15)  // 15 minutos
+        ->disableIf(fn () => auth()->user()?->hasRole('super_admin')),  // Opcional: excluir super admins
+])
+```
+
+**Decisión:** Configurar 15 minutos de inactividad, con advertencia 30 segundos antes.
+
+---
+
+### 5.2 filament-renew-password (yebor974/filament-renew-password)
+
+**Prioridad:** 🟠 ALTA
+
+**Razón:** Requiere migración y modificación del modelo User.
+
+#### Pasos de Configuración:
+
+```bash
+# 1. Instalar paquete (v3.x para Filament 4)
+composer require yebor974/filament-renew-password
+
+# 2. Publicar y ejecutar migraciones
+php artisan vendor:publish --tag="filament-renew-password-migrations"
+php artisan migrate
+
+# 3. (Opcional) Publicar traducciones
+php artisan vendor:publish --tag="filament-renew-password-translations"
+```
+
+#### Cambios en Modelo User:
+
+```php
+use Yebor974\Filament\RenewPassword\Contracts\RenewPasswordContract;
+use Yebor974\Filament\RenewPassword\Traits\RenewPassword;
+
+class User extends Authenticatable implements FilamentUser, RenewPasswordContract
+{
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, TwoFactorAuthenticatable;
+    use RenewPassword;
+
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'last_renew_password_at',
+        'force_renew_password',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'last_renew_password_at' => 'datetime',
+            'force_renew_password' => 'boolean',
+        ];
+    }
+}
+```
+
+#### Registro en AdminPanelProvider:
+
+```php
+use Yebor974\Filament\RenewPassword\RenewPasswordPlugin;
+
+->plugins([
+    RenewPasswordPlugin::make()
+        ->passwordExpiresIn(days: 90)  // Renovar cada 90 días
+        ->forceRenewPassword(),         // Permitir forzar renovación
+])
+```
+
+**Decisión:** Habilitar ambos modos: expiración cada 90 días y forzado por admin.
+
+---
+
+### 5.3 filament-language-switch (bezhansalleh/filament-language-switch)
+
+**Prioridad:** 🟡 MEDIA
+
+**Razón:** Requiere configuración en AppServiceProvider y custom theme.
+
+#### Pasos de Configuración:
+
+```bash
+# 1. Instalar paquete
+composer require bezhansalleh/filament-language-switch
+```
+
+#### Actualizar theme.css:
+
+```css
+@source '../../../../vendor/bezhansalleh/filament-language-switch/resources/views/**/*.blade.php';
+```
+
+#### Configuración en AppServiceProvider:
+
+```php
+use BezhanSalleh\FilamentLanguageSwitch\LanguageSwitch;
+use BezhanSalleh\FilamentLanguageSwitch\Events\LocaleChanged;
+use Illuminate\Support\Facades\Event;
+
+public function boot(): void
+{
+    LanguageSwitch::configureUsing(function (LanguageSwitch $switch) {
+        $switch
+            ->locales(['es', 'en'])
+            ->labels([
+                'es' => 'Español',
+                'en' => 'English',
+            ])
+            ->visible(outsidePanels: true);
+    });
+
+    // Persistir preferencia del usuario
+    Event::listen(function (LocaleChanged $event) {
+        if (auth()->check()) {
+            auth()->user()->update(['locale' => $event->locale]);
+        }
+    });
+}
+```
+
+#### Migración para Locale en User:
+
+```bash
+php artisan make:migration add_locale_to_users_table
+```
+
+```php
+Schema::table('users', function (Blueprint $table) {
+    $table->string('locale', 10)->default('es')->after('email');
+});
+```
+
+**Decisión:** Soportar español e inglés inicialmente, con persistencia en base de datos.
+
+---
+
 ## Orden de Configuración Final
 
 1. ✅ **filament-shield** - Sistema de permisos base
@@ -536,7 +704,10 @@ SpatieTagsInput::make('tags')
 8. ⏳ **guava/calendar** - Calendario
 9. ⏳ **flowforge** - Kanban
 10. ✅ **filament-webhook-server** - Ya configurado
-11. 🟢 **Resto** - Uso directo sin configuración
+11. ⏳ **filament-auto-logout** - Auto cierre de sesión
+12. ⏳ **filament-renew-password** - Renovación de contraseñas
+13. ⏳ **filament-language-switch** - Selector de idioma
+14. 🟢 **Resto** - Uso directo sin configuración
 
 ---
 
@@ -547,6 +718,7 @@ SpatieTagsInput::make('tags')
 
 namespace App\Providers\Filament;
 
+use Carbon\Carbon;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -563,6 +735,8 @@ use Awcodes\QuickCreate\QuickCreatePlugin;
 use Leandrocfe\FilamentApexCharts\FilamentApexChartsPlugin;
 use Tapp\FilamentWebhookClient\FilamentWebhookClientPlugin;
 use Marjose123\FilamentWebhookServer\WebhookPlugin;
+use Niladam\FilamentAutoLogout\AutoLogoutPlugin;
+use Yebor974\Filament\RenewPassword\RenewPasswordPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -577,12 +751,12 @@ class AdminPanelProvider extends PanelProvider
                 'primary' => Color::Amber,
             ])
             ->plugins([
-                // 1. Seguridad
+                // 1. Seguridad - Permisos
                 FilamentShieldPlugin::make()
                     ->gridColumns(['default' => 1, 'sm' => 2, 'lg' => 3])
                     ->sectionColumnSpan(1),
-                
-                // 2. Autenticación
+
+                // 2. Seguridad - Autenticación
                 BreezyCore::make()
                     ->myProfile(
                         shouldRegisterUserMenu: true,
@@ -590,23 +764,32 @@ class AdminPanelProvider extends PanelProvider
                     )
                     ->enableTwoFactorAuthentication(force: false)
                     ->enableSanctumTokens(),
-                
-                // 3. API
+
+                // 3. Seguridad - Auto Logout
+                AutoLogoutPlugin::make()
+                    ->logoutAfter(Carbon::SECONDS_PER_MINUTE * 15),
+
+                // 4. Seguridad - Renovación de Contraseñas
+                RenewPasswordPlugin::make()
+                    ->passwordExpiresIn(days: 90)
+                    ->forceRenewPassword(),
+
+                // 5. API
                 ApiServicePlugin::make(),
-                
-                // 4. Webhooks
+
+                // 6. Webhooks
                 WebhookPlugin::make()
                     ->enableApiRoutes()
                     ->keepLogs()
                     ->enablePlugin(),
                 FilamentWebhookClientPlugin::make(),
-                
-                // 5. UI
+
+                // 7. UI
                 QuickCreatePlugin::make()
                     ->slideOver()
                     ->keyBindings(['command+shift+c', 'ctrl+shift+c']),
-                    
-                // 6. Charts
+
+                // 8. Charts
                 FilamentApexChartsPlugin::make(),
             ])
             // ... resto de configuración
@@ -618,19 +801,44 @@ class AdminPanelProvider extends PanelProvider
 
 ## Checklist de Configuración
 
-- [ ] Ejecutar `php artisan shield:setup`
-- [ ] Ejecutar `php artisan breezy:install`
-- [ ] Añadir trait `HasRoles` al User
-- [ ] Añadir trait `TwoFactorAuthenticatable` al User
-- [ ] Ejecutar `php artisan install:api`
-- [ ] Publicar migraciones de commentions
-- [ ] Configurar theme.css con todos los @source
-- [ ] Registrar todos los plugins en AdminPanelProvider
-- [ ] Crear factories/seeders para roles y permisos
-- [ ] Ejecutar `vendor/bin/pint --dirty`
-- [ ] Ejecutar tests
+### Seguridad Base
+
+-   [ ] Ejecutar `php artisan shield:setup`
+-   [ ] Ejecutar `php artisan breezy:install`
+-   [ ] Añadir trait `HasRoles` al User
+-   [ ] Añadir trait `TwoFactorAuthenticatable` al User
+
+### Nuevos Plugins de Seguridad
+
+-   [x] Instalar `niladam/filament-auto-logout`
+-   [x] Ejecutar `php artisan filament-auto-logout:install`
+-   [x] Instalar `yebor974/filament-renew-password`
+-   [x] Publicar y ejecutar migraciones de renew-password
+-   [x] Añadir trait `RenewPassword` e interfaz `RenewPasswordContract` al User
+-   [x] Añadir columnas `last_renew_password_at` y `force_renew_password` a $fillable
+
+### Internacionalización
+
+-   [x] Instalar `bezhansalleh/filament-language-switch`
+-   [x] Configurar LanguageSwitch en AppServiceProvider
+-   [x] Crear migración para columna `locale` en users
+-   [x] Añadir @source de language-switch a theme.css
+
+### API e Integraciones
+
+-   [ ] Ejecutar `php artisan install:api`
+-   [ ] Publicar migraciones de commentions
+
+### Finalización
+
+-   [ ] Configurar theme.css con todos los @source
+-   [ ] Registrar todos los plugins en AdminPanelProvider
+-   [ ] Crear factories/seeders para roles y permisos
+-   [ ] Ejecutar `npm run build`
+-   [ ] Ejecutar `vendor/bin/pint --dirty`
+-   [ ] Ejecutar tests
 
 ---
 
-*Documento generado para el proyecto IT Assets Manager Boilerplate*
-*Última actualización: Enero 2025*
+_Documento generado para el proyecto Filament Starter Kit Boilerplate_
+Última actualización: Diciembre 2025

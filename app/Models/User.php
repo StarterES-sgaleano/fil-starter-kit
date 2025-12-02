@@ -10,11 +10,13 @@ use Illuminate\Notifications\Notifiable;
 use Jeffgreco13\FilamentBreezy\Traits\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Yebor974\Filament\RenewPassword\Contracts\RenewPasswordContract;
+use Yebor974\Filament\RenewPassword\Traits\RenewPassword;
 
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, RenewPasswordContract
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, Notifiable, TwoFactorAuthenticatable;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, RenewPassword, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -25,6 +27,9 @@ class User extends Authenticatable implements FilamentUser
         'name',
         'email',
         'password',
+        'locale',
+        'last_renew_password_at',
+        'force_renew_password',
     ];
 
     /**
@@ -47,6 +52,8 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'last_renew_password_at' => 'datetime',
+            'force_renew_password' => 'boolean',
         ];
     }
 

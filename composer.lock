@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "edc76122a9125a36470ce0fb4fd26c50",
+    "content-hash": "43584eeda4e30c2338a766e841bb0fea",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -354,6 +354,91 @@
                 "source": "https://github.com/Bacon/BaconQrCode/tree/v3.0.3"
             },
             "time": "2025-11-19T17:15:36+00:00"
+        },
+        {
+            "name": "bezhansalleh/filament-language-switch",
+            "version": "4.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/bezhanSalleh/filament-language-switch.git",
+                "reference": "e4d9a6fc5ed36977da6bf93fbc1a231429b91e6f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/bezhanSalleh/filament-language-switch/zipball/e4d9a6fc5ed36977da6bf93fbc1a231429b91e6f",
+                "reference": "e4d9a6fc5ed36977da6bf93fbc1a231429b91e6f",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^4.0",
+                "illuminate/support": "^11.28|^12.0",
+                "php": "^8.2",
+                "spatie/laravel-package-tools": "^1.9"
+            },
+            "require-dev": {
+                "larastan/larastan": "^3.0",
+                "laravel/pint": "^1.0",
+                "nunomaduro/collision": "^8.0",
+                "orchestra/testbench": "^9.0|^10.0",
+                "pestphp/pest": "^2.0|^3.0",
+                "pestphp/pest-plugin-laravel": "^2.0|^3.0",
+                "pestphp/pest-plugin-livewire": "^2.0|^3.0",
+                "pestphp/pest-plugin-type-coverage": "^2.0|^3.5",
+                "phpstan/extension-installer": "^1.4",
+                "phpstan/phpstan": "^1.0|^2.1",
+                "phpstan/phpstan-deprecation-rules": "^1.0|^2.0",
+                "phpstan/phpstan-phpunit": "^1.0|^2.0",
+                "phpunit/phpunit": "^10.1|^11.0",
+                "rector/rector": "^2.1",
+                "spatie/laravel-ray": "^1.40"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "BezhanSalleh\\LanguageSwitch\\LanguageSwitchServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "BezhanSalleh\\LanguageSwitch\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Bezhan Salleh",
+                    "email": "bezhan_salleh@yahoo.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Zero config Language Switch(Changer/Localizer) plugin for filamentphp admin",
+            "homepage": "https://github.com/bezhansalleh/filament-language-switch",
+            "keywords": [
+                "bezhanSalleh",
+                "filament-language-changer",
+                "filament-language-switch",
+                "filament-locale-changer",
+                "filament-localizer",
+                "filament-plugin",
+                "filamentphp",
+                "laravel"
+            ],
+            "support": {
+                "issues": "https://github.com/bezhanSalleh/filament-language-switch/issues",
+                "source": "https://github.com/bezhanSalleh/filament-language-switch/tree/4.0.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/bezhanSalleh",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-08-19T22:55:31+00:00"
         },
         {
             "name": "bezhansalleh/filament-plugin-essentials",
@@ -6141,6 +6226,76 @@
             "time": "2025-10-21T19:32:17+00:00"
         },
         {
+            "name": "niladam/filament-auto-logout",
+            "version": "2.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/niladam/filament-auto-logout.git",
+                "reference": "6fde9f01dbe9de80d638d5d6b2c192f24438c332"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/niladam/filament-auto-logout/zipball/6fde9f01dbe9de80d638d5d6b2c192f24438c332",
+                "reference": "6fde9f01dbe9de80d638d5d6b2c192f24438c332",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^3.0|^4.0",
+                "php": "^8.2",
+                "spatie/laravel-package-tools": "^1.15.0"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Niladam\\FilamentAutoLogout\\AutoLogoutServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Niladam\\FilamentAutoLogout\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Madalin Tache",
+                    "email": "niladam@gmail.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A filament plugin that auto logs out your users if they are idle.",
+            "homepage": "https://github.com/niladam/filament-auto-logout",
+            "keywords": [
+                "afk logout",
+                "autologout",
+                "filament auto logout",
+                "filament-auto-logout",
+                "laravel",
+                "logout if afk",
+                "logout if idle",
+                "logout on idle"
+            ],
+            "support": {
+                "issues": "https://github.com/niladam/filament-auto-logout/issues",
+                "source": "https://github.com/niladam/filament-auto-logout"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/niladam",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-11-11T11:13:21+00:00"
+        },
+        {
             "name": "nunomaduro/termwind",
             "version": "v2.3.3",
             "source": {
@@ -11729,6 +11884,75 @@
                 }
             ],
             "time": "2024-11-21T01:49:47+00:00"
+        },
+        {
+            "name": "yebor974/filament-renew-password",
+            "version": "3.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/yebor974/filament-renew-password.git",
+                "reference": "34a2955afd11031de826cbc6a5f352c23320f811"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/yebor974/filament-renew-password/zipball/34a2955afd11031de826cbc6a5f352c23320f811",
+                "reference": "34a2955afd11031de826cbc6a5f352c23320f811",
+                "shasum": ""
+            },
+            "require": {
+                "filament/filament": "^4.0",
+                "php": "^8.2",
+                "spatie/laravel-package-tools": "^1.9"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.2"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Yebor974\\Filament\\RenewPassword\\FilamentRenewPasswordServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Yebor974\\Filament\\RenewPassword\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Julien BOYER",
+                    "email": "contact@julienboyer.re"
+                }
+            ],
+            "description": "Package for manage renew password according to the last renew or other criteria",
+            "homepage": "https://github.com/yebor974/filament-renew-password",
+            "keywords": [
+                "filament",
+                "laravel",
+                "password",
+                "renew"
+            ],
+            "support": {
+                "issues": "https://github.com/yebor974/filament-renew-password/issues",
+                "source": "https://github.com/yebor974/filament-renew-password"
+            },
+            "funding": [
+                {
+                    "url": "https://www.buymeacoffee.com/yebor974",
+                    "type": "buy_me_a_coffee"
+                },
+                {
+                    "url": "https://github.com/yebor974",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-08-04T09:16:14+00:00"
         }
     ],
     "packages-dev": [
