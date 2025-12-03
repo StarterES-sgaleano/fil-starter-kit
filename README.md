@@ -49,6 +49,40 @@ A production-ready Laravel 12 + Filament 4 boilerplate with 18+ pre-configured p
 
 ## Installation
 
+### Quick Install (Recommended)
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd fil-starter-kit
+
+# Run the quick install command
+composer setup
+```
+
+The `composer setup` command will:
+1. Install PHP dependencies
+2. Launch an interactive installer that handles:
+   - Environment configuration (app name, URL, locale)
+   - Database setup (SQLite by default)
+   - Migrations
+   - Shield roles & permissions
+   - Admin user creation
+   - NPM dependencies & asset building
+   - Application optimization
+
+### Alternative Install Methods
+
+```bash
+# Non-interactive install (uses defaults)
+composer setup:ci
+
+# Force reinstall (will prompt for options)
+composer setup:fresh
+```
+
+### Manual Installation
+
 ```bash
 # Clone the repository
 git clone <repository-url>
