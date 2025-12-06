@@ -1,844 +1,364 @@
-# Decisions.md - Plugin Configuration Plan
+# Decisions.md - Plugin Configuration Decisions
 
-Este documento detalla las decisiones de configuración para los 18 plugins de Filament instalados, organizados por orden de configuración basado en dependencias.
+Este documento detalla las decisiones tomadas durante la configuración de los plugins de Filament, enfocándose en el PORQUÉ de cada elección, no en el CÓMO.
 
 ---
 
 ## Resumen Ejecutivo
 
-### Plugins por Nivel de Configuración
+### Decisiones de Priorización
 
-| Nivel       | Plugins                                                                | Descripción                                                |
-| ----------- | ---------------------------------------------------------------------- | ---------------------------------------------------------- |
-| **CRÍTICO** | filament-shield, filament-breezy                                       | Requieren configuración obligatoria antes de usar el panel |
-| **ALTO**    | filament-api-service, commentions, filament-webhook-client             | Requieren migraciones y/o traits en modelos                |
-| **MEDIO**   | filament-apex-charts, filament-quick-create, guava/calendar, flowforge | Requieren registro en Panel Provider                       |
-| **BAJO**    | Resto de plugins                                                       | Solo uso directo sin configuración previa                  |
+| Nivel       | Plugins                                                                | Decisión                                                                 |
+| ----------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **CRÍTICO** | filament-shield, filament-breezy                                       | Configurar primero porque afectan a todos los demás recursos y seguridad  |
+| **ALTO**    | filament-api-service, commentions, filament-webhook-client             | Requieren migraciones y/o traits - impactan estructura de datos           |
+| **MEDIO**   | filament-apex-charts, filament-quick-create, guava/calendar, flowforge | Configurar después de dependencias críticas                              |
+| **BAJO**    | Resto de plugins                                                       | Configurar al final - solo uso directo sin dependencias                   |
 
 ---
 
-## Fase 1: Configuración Crítica de Seguridad
+## Fase 1: Decisiones de Seguridad
 
-### 1.1 filament-shield (bezhansalleh/filament-shield)
-
-**Prioridad:** 🔴 CRÍTICA - Debe configurarse PRIMERO
-
-**Razón:** Define el sistema de permisos que afecta a todos los demás recursos.
-
-#### Pasos de Configuración:
-
-```bash
-# 1. Publicar configuración
-php artisan vendor:publish --tag="filament-shield-config"
-
-# 2. Ejecutar setup (crea roles, permisos, super_admin)
-php artisan shield:setup --no-interaction
-```
-
-#### Cambios en Modelo User:
-
-```php
-// app/Models/User.php
-use Spatie\Permission\Traits\HasRoles;
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Panel;
-
-class User extends Authenticatable implements FilamentUser
-{
-    use HasRoles;
-
-    public function canAccessPanel(Panel $panel): bool
-    {
-        return $this->hasRole('super_admin') || $this->hasAnyPermission([/* ... */]);
-    }
-}
-```
-
-#### Registro en AdminPanelProvider:
-
-```php
-use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
-
-->plugins([
-    FilamentShieldPlugin::make()
-        ->gridColumns(['default' => 1, 'sm' => 2, 'lg' => 3])
-        ->sectionColumnSpan(1)
-        ->checkboxListColumns(['default' => 1, 'sm' => 2, 'lg' => 4])
-        ->resourceCheckboxListColumns(['default' => 1, 'sm' => 2]),
-])
-```
+### 1.1 filament-shield - Sistema de Permisos
 
 **Decisión:** Usar el rol `super_admin` por defecto para administradores completos.
 
----
+**Razón:**
 
-### 1.2 filament-breezy (jeffgreco13/filament-breezy)
+- Elimina la necesidad de asignar explícitamente todos los permisos
+- Automaticamente concede acceso a nuevos recursos sin reconfiguración
+- Usa el sistema de autorización nativo de Laravel a través de gates
 
-**Prioridad:** 🔴 CRÍTICA - Segundo en configurarse
-
-**Razón:** Proporciona autenticación 2FA y página de perfil.
-
-#### Pasos de Configuración:
-
-```bash
-# 1. Ejecutar instalador
-php artisan breezy:install --no-interaction
-```
-
-#### Cambios en Modelo User (si 2FA habilitado):
-
-```php
-// app/Models/User.php
-use Jeffgreco13\FilamentBreezy\Traits\TwoFactorAuthenticatable;
-
-class User extends Authenticatable
-{
-    use TwoFactorAuthenticatable;
-
-    // Para avatar personalizado
-    public function getFilamentAvatarUrl(): ?string
-    {
-        return $this->avatar_url;
-    }
-}
-```
-
-#### Registro en AdminPanelProvider:
-
-```php
-use Jeffgreco13\FilamentBreezy\BreezyCore;
-
-->plugins([
-    BreezyCore::make()
-        ->myProfile(
-            shouldRegisterUserMenu: true,
-            shouldRegisterNavigation: false,
-            hasAvatars: false,
-            slug: 'my-profile'
-        )
-        ->enableTwoFactorAuthentication(
-            force: false // No forzar 2FA a todos los usuarios
-        )
-        ->enableSanctumTokens(
-            permissions: ['create', 'view', 'update', 'delete']
-        ),
-])
-```
-
-#### Actualizar theme.css:
-
-```css
-@source '../../../../vendor/jeffgreco13/filament-breezy/resources/**/*.blade.php';
-```
-
-**Decisión:** Habilitar 2FA opcional (no forzado), permitir tokens Sanctum para API.
+**Impacto:** Esta decisión define la arquitectura de permisos para toda la aplicación.
 
 ---
 
-## Fase 2: Configuración de API e Integraciones
+### 1.2 filament-breezy - Autenticación Mejorada
 
-### 2.1 filament-api-service (rupadana/filament-api-service)
+**Decisión:** Habilitar 2FA opcional con gestión de tokens Sanctum.
 
-**Prioridad:** 🟠 ALTA
+**Razón:**
 
-**Razón:** Proporciona API RESTful automática para todos los resources.
+- Balance entre seguridad y usabilidad
+- Los tokens Sanctum permiten integración API futura
+- Permite migración gradual a 2FA obligatorio si se requiere
 
-#### Pasos de Configuración:
-
-```bash
-# 1. Publicar configuración
-php artisan vendor:publish --tag=api-service-config
-
-# 2. Ejecutar install:api de Laravel (si no se ha hecho)
-php artisan install:api --no-interaction
-```
-
-#### Registro en AdminPanelProvider:
-
-```php
-use Rupadana\ApiService\ApiServicePlugin;
-
-->plugins([
-    ApiServicePlugin::make()
-        ->middleware([
-            // Middlewares personalizados
-        ]),
-])
-```
-
-#### Configuración Recomendada (config/api-service.php):
-
-```php
-return [
-    'route' => [
-        'panel_prefix' => true, // Prefijo /api/admin/
-        'use_resource_middlewares' => true,
-    ],
-    'tenancy' => [
-        'enabled' => false,
-        'awareness' => false,
-    ],
-    'use-spatie-permission-middleware' => true, // Integración con Shield
-];
-```
-
-**Decisión:** Mantener prefijo de panel, integrar con Shield para permisos API.
+**Impacto:** Establece el estándar de autenticación para todos los usuarios del panel.
 
 ---
 
-### 2.2 filament-webhook-client (tapp/filament-webhook-client)
+## Fase 2: Decisiones de Integración
 
-**Prioridad:** 🟠 ALTA
+### 2.1 filament-api-service - API Automática
 
-**Razón:** Requiere instalación previa de spatie/laravel-webhook-client.
+**Decisión:** Generar endpoints API para todos los recursos por defecto.
 
-#### Pasos de Configuración:
+**Razón:**
 
-```bash
-# 1. Instalar y configurar Spatie Webhook Client primero
-composer require spatie/laravel-webhook-client
-php artisan vendor:publish --provider="Spatie\WebhookClient\WebhookClientServiceProvider" --tag="webhook-client-migrations"
-php artisan migrate
+- Maximiza el valor del boilerplate para proyectos que necesitan API
+- Documentación OpenAPI incluida reduce tiempo de desarrollo
+- Consistencia con arquitectura headless/common
 
-# 2. Publicar config del plugin
-php artisan vendor:publish --tag="filament-webhook-client-config"
-```
-
-#### Registro en AdminPanelProvider:
-
-```php
-use Tapp\FilamentWebhookClient\FilamentWebhookClientPlugin;
-
-->plugins([
-    FilamentWebhookClientPlugin::make(),
-])
-```
-
-**Decisión:** Ya tenemos filament-webhook-server instalado, el client complementa para recibir webhooks.
+**Impacto:** Define la estrategia API para toda la aplicación.
 
 ---
 
-### 2.3 commentions (kirschbaum-development/commentions)
+### 2.2 commentions - Sistema de Comentarios
 
-**Prioridad:** 🟠 ALTA
+**Decisión:** Implementar comentarios con @menciones en modelos clave.
 
-**Razón:** Requiere migraciones y traits en modelos.
+**Razón:**
 
-#### Pasos de Configuración:
+- Facilita colaboración en equipos
+- Las @menciones mejoran notificación y comunicación
+- Reacciones proporcionan feedback rápido sin comentarios extensos
 
-```bash
-# 1. Publicar migraciones
-php artisan vendor:publish --tag="commentions-migrations"
-
-# 2. Ejecutar migraciones
-php artisan migrate
-
-# 3. (Opcional) Publicar configuración
-php artisan vendor:publish --tag="commentions-config"
-```
-
-#### Cambios en Modelo User:
-
-```php
-// app/Models/User.php
-use Kirschbaum\Commentions\Contracts\Commenter;
-
-class User extends Authenticatable implements Commenter
-{
-    // Ya debe tener HasRoles de Shield
-}
-```
-
-#### En Modelos Comentables:
-
-```php
-// Ejemplo: app/Models/Asset.php
-use Kirschbaum\Commentions\HasComments;
-use Kirschbaum\Commentions\Contracts\Commentable;
-
-class Asset extends Model implements Commentable
-{
-    use HasComments;
-}
-```
-
-**Decisión:** Configurar comentarios con suscripciones habilitadas para notificaciones.
+**Impacto:** Establece patrón de colaboración para todos los recursos importantes.
 
 ---
 
-## Fase 3: Plugins de Panel (Registro en Provider)
+### 2.3 filament-webhook-client - Webhooks Entrantes
 
-### 3.1 filament-apex-charts (leandrocfe/filament-apex-charts)
+**Decisión:** Configurar cliente de webhooks para integraciones externas.
 
-**Prioridad:** 🟡 MEDIA
+**Razón:**
 
-**Razón:** Solo requiere registro en panel.
+- Prepara la aplicación para integraciones con servicios externos
+- Panel de visualización facilita debugging de webhooks
+- Complementa al webhook-server para gestión completa
 
-#### Registro en AdminPanelProvider:
-
-```php
-use Leandrocfe\FilamentApexCharts\FilamentApexChartsPlugin;
-
-->plugins([
-    FilamentApexChartsPlugin::make(),
-])
-```
-
-#### Crear Widget de Ejemplo:
-
-```bash
-php artisan make:filament-apex-charts AssetStatsChart
-```
-
-**Decisión:** Crear charts para dashboard con estadísticas de assets.
+**Impacto:** Habilita arquitectura orientada a eventos y servicios.
 
 ---
 
-### 3.2 filament-quick-create (awcodes/filament-quick-create)
+## Fase 3: Decisiones de UI y Experiencia
 
-**Prioridad:** 🟡 MEDIA
+### 3.1 filament-apex-charts - Visualización de Datos
 
-#### Registro en AdminPanelProvider:
+**Decisión:** Incluir charts interactivos en dashboard por defecto.
 
-```php
-use Awcodes\QuickCreate\QuickCreatePlugin;
+**Razón:**
 
-->plugins([
-    QuickCreatePlugin::make()
-        ->sort(true)
-        ->slideOver()
-        ->keyBindings(['command+shift+c', 'ctrl+shift+c']),
-])
-```
+- Los dashboards modernos requieren visualización de datos
+- ApexCharts proporciona amplia variedad de tipos de gráficos
+- Mejora percepción de valor del boilerplate
 
-#### Actualizar theme.css:
-
-```css
-@source '../../../../vendor/awcodes/filament-quick-create/resources/**/*.blade.php';
-```
-
-**Decisión:** Habilitar slide-over y keybindings para acceso rápido.
+**Impacto:** Establece expectativa de dashboards ricos en datos.
 
 ---
 
-### 3.3 guava/calendar
+### 3.2 filament-quick-create - Creación Rápida
 
-**Prioridad:** 🟡 MEDIA
+**Decisión:** Activar menú de creación rápida en navegación principal.
 
-**Razón:** Requiere custom theme y assets.
+**Razón:**
 
-#### Pasos de Configuración:
+- Reduce fricción para operaciones comunes
+- Mejora productividad del usuario
+- Acceso centralizado a todos los recursos
 
-```bash
-# Publicar assets
-php artisan filament:assets
-```
-
-#### Actualizar theme.css:
-
-```css
-@source '../../../../vendor/guava/calendar/resources/**/*';
-@import "../../../../vendor/guava/calendar/resources/css/theme.css";
-```
-
-**Decisión:** Usar para visualización de mantenimientos programados de assets.
+**Impacto:** Optimiza flujo de trabajo de usuarios frecuentes.
 
 ---
 
-### 3.4 flowforge (relaticle/flowforge)
+### 3.3 guava/calendar - Gestión de Tiempo
 
-**Prioridad:** 🟡 MEDIA
+**Decisión:** Incluir widget de calendario para recursos con fechas.
 
-#### Crear Kanban Board:
+**Razón:**
 
-```bash
-php artisan flowforge:make-board AssetWorkflowBoard --model=Asset
-```
+- Muchas aplicaciones necesitan gestión de eventos/fechas
+- Interfaz familiar tipo calendar reduce curva de aprendizaje
+- Arrastrar/soltar mejora UX significativamente
 
-**Decisión:** Implementar para flujos de trabajo de gestión de assets (nuevo, en uso, en mantenimiento, retirado).
-
----
-
-## Fase 4: Plugins de Uso Directo (Sin Configuración Panel)
-
-### 4.1 filament-excel (pxlrbt/filament-excel)
-
-**Tipo:** Uso en Resources
-
-```php
-// En cualquier Resource table
-use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-
-->bulkActions([
-    ExportBulkAction::make(),
-])
-```
-
-**Decisión:** Añadir exportación a todos los resources principales.
+**Impacto:** Proporciona solución completa para gestión temporal.
 
 ---
 
-### 4.2 filament-excel-import (eighty9nine/filament-excel-import)
+### 3.4 flowforge - Tableros Kanban
 
-**Tipo:** Uso en Resources (Header Action)
+**Decisión:** Implementar tableros Kanban para flujos de trabajo.
 
-**Repositorio:** https://github.com/eighty9nine/filament-excel-import
+**Razón:**
 
-**Requisito:** Modelos deben tener `$fillable` definido para Mass Assignment.
+- Visualización intuitiva de estados y progreso
+- Drag-and-drop facilita gestión de procesos
+- Complementa recursos con estados (assets, tasks, etc.)
 
-```php
-// En ListRecords de cualquier Resource
-use EightyNine\ExcelImport\ExcelImportAction;
-
-protected function getHeaderActions(): array
-{
-    return [
-        ExcelImportAction::make()
-            ->color("primary")
-            ->slideOver()
-            ->validateUsing([
-                'name' => 'required',
-                'serial_number' => 'required|unique:assets',
-            ])
-            ->sampleExcel(
-                sampleData: [
-                    ['name' => 'Laptop HP', 'serial_number' => 'ABC123'],
-                ],
-                fileName: 'assets-sample.xlsx',
-            ),
-        Actions\CreateAction::make(),
-    ];
-}
-
-// Para RelationManagers
-use EightyNine\ExcelImport\Tables\ExcelImportRelationshipAction;
-
-->headerActions([
-    ExcelImportRelationshipAction::make()
-        ->slideOver()
-        ->color('primary'),
-])
-```
-
-**Decisión:** Añadir importación con validación y archivo de ejemplo a resources principales.
+**Impacto:** Habilita gestión visual de workflows complejos.
 
 ---
 
-### 4.3 filament-badgeable-column (awcodes/filament-badgeable-column)
+## Fase 4: Decisiones de Datos y Exportación
 
-**Tipo:** Uso en Tables
+### 4.1 filament-excel - Exportación de Datos
 
-#### Actualizar theme.css:
+**Decisión:** Habilitar exportación Excel/CSV en todos los listados.
 
-```css
-@source '../../../../vendor/awcodes/filament-badgeable-column/resources/**/*.blade.php';
-```
+**Razón:**
 
-```php
-use Awcodes\BadgeableColumn\Components\Badge;
-use Awcodes\BadgeableColumn\Components\BadgeableColumn;
+- Los usuarios necesitan exportar datos para reportes
+- Excel es estándar en entornos empresariales
+- Funcionalidad esperada en sistemas de administración
 
-BadgeableColumn::make('name')
-    ->suffixBadges([
-        Badge::make('status')
-            ->label(fn($record) => $record->status)
-            ->color(fn($record) => match($record->status) {
-                'active' => 'success',
-                'maintenance' => 'warning',
-                default => 'gray',
-            }),
-    ])
-```
+**Impacto:** Satisface necesidad básica de exportación de datos.
 
 ---
 
-### 4.4 filament-modal-relation-managers (guava/filament-modal-relation-managers)
+### 4.2 filament-excel-import - Importación Masiva
 
-**Tipo:** Uso en Actions
+**Decisión:** Permitir importación Excel con validación.
 
-#### Actualizar theme.css:
+**Razón:**
 
-```css
-@source '../../../../vendor/guava/filament-modal-relation-managers/resources/**/*';
-```
+- Complementa exportación para ciclo completo de datos
+- Validación previa previene corrupción de datos
+- Reduce carga manual para inicialización de sistemas
 
-```php
-use Guava\FilamentModalRelationManagers\Actions\RelationManagerAction;
-
-->actions([
-    RelationManagerAction::make('view-components')
-        ->label('Components')
-        ->relationManager(ComponentRelationManager::make())
-        ->compact(),
-])
-```
+**Impacto:** Facilita migración y carga inicial de datos.
 
 ---
 
-### 4.5 filament-layout-manager (asosick/filament-layout-manager)
+## Fase 5: Decisiones de Componentes UI
 
-**Tipo:** Para páginas personalizables
+### 5.1 filament-badgeable-column - Columnas con Badges
 
-```bash
-php artisan make:filament-page DashboardPage
-```
+**Decisión:** Usar badges para estados y categorías visuales.
 
-```php
-use Asosick\FilamentLayoutManager\Pages\LayoutManagerPage;
+**Razón:**
 
-class DashboardPage extends LayoutManagerPage
-{
-    protected function getComponents(): array
-    {
-        return [
-            AssetStatsChart::class,
-            RecentAssetsWidget::class,
-        ];
-    }
-}
-```
+- Mejora legibilidad rápida de tablas
+- Codificación por color facilita identificación
+- Reduce necesidad de columnas de estado textuales
+
+**Impacto:** Optimiza visualización de datos tabulares.
 
 ---
 
-### 4.6 Plugins Spatie Oficiales
+### 5.2 filament-modal-relation-managers - Relaciones en Modales
 
-#### spatie-laravel-settings-plugin
+**Decisión:** Abrir relation managers en modales en lugar de páginas separadas.
 
-**Uso:** Crear Settings Pages
+**Razón:**
 
-```bash
-php artisan make:settings-migration CreateGeneralSettings
-php artisan make:filament-settings-page ManageGeneral
-```
+- Reduce navegación y carga de páginas
+- Mejora flujo de trabajo para gestión de relaciones
+- Experiencia más moderna y fluida
 
-#### spatie-laravel-tags-plugin
-
-**Uso:** En formularios
-
-```php
-use Filament\Forms\Components\SpatieTagsInput;
-
-SpatieTagsInput::make('tags')
-    ->type('asset-categories'),
-```
+**Impacto:** Optimiza gestión de relaciones entre modelos.
 
 ---
 
-## Fase 5: Nuevos Plugins de Seguridad e i18n
+### 5.3 filament-layout-manager - Dashboards Personalizables
 
-### 5.1 filament-auto-logout (niladam/filament-auto-logout)
+**Decisión:** Permitir personalización de layout de widgets.
 
-**Prioridad:** 🟡 MEDIA
+**Razón:**
 
-**Razón:** Mejora la seguridad cerrando sesiones inactivas automáticamente.
+- Diferentes usuarios priorizan diferentes métricas
+- Drag-and-drop para personalización sin código
+- Adapta dashboard a roles específicos
 
-#### Pasos de Configuración:
-
-```bash
-# 1. Instalar paquete
-composer require niladam/filament-auto-logout
-
-# 2. Ejecutar instalador
-php artisan filament-auto-logout:install
-
-# 3. (Opcional) Publicar configuración
-php artisan vendor:publish --tag="filament-auto-logout-config"
-```
-
-#### Registro en AdminPanelProvider:
-
-```php
-use Niladam\FilamentAutoLogout\AutoLogoutPlugin;
-use Carbon\Carbon;
-
-->plugins([
-    AutoLogoutPlugin::make()
-        ->logoutAfter(Carbon::SECONDS_PER_MINUTE * 15)  // 15 minutos
-        ->disableIf(fn () => auth()->user()?->hasRole('super_admin')),  // Opcional: excluir super admins
-])
-```
-
-**Decisión:** Configurar 15 minutos de inactividad, con advertencia 30 segundos antes.
+**Impacto:** Proporciona flexibilidad en visualización de datos.
 
 ---
 
-### 5.2 filament-renew-password (yebor974/filament-renew-password)
+## Fase 6: Decisiones de Seguridad Adicional
 
-**Prioridad:** 🟠 ALTA
+### 6.1 filament-auto-logout - Cierre Automático
 
-**Razón:** Requiere migración y modificación del modelo User.
+**Decisión:** Implementar cierre automático por inactividad (15 minutos).
 
-#### Pasos de Configuración:
+**Razón:**
 
-```bash
-# 1. Instalar paquete (v3.x para Filament 4)
-composer require yebor974/filament-renew-password
+- Mejora seguridad en entornos compartidos
+- Previene acceso no autorizado por sesiones abandonadas
+- Configurable según necesidades específicas
 
-# 2. Publicar y ejecutar migraciones
-php artisan vendor:publish --tag="filament-renew-password-migrations"
-php artisan migrate
-
-# 3. (Opcional) Publicar traducciones
-php artisan vendor:publish --tag="filament-renew-password-translations"
-```
-
-#### Cambios en Modelo User:
-
-```php
-use Yebor974\Filament\RenewPassword\Contracts\RenewPasswordContract;
-use Yebor974\Filament\RenewPassword\Traits\RenewPassword;
-
-class User extends Authenticatable implements FilamentUser, RenewPasswordContract
-{
-    use HasApiTokens, HasFactory, HasRoles, Notifiable, TwoFactorAuthenticatable;
-    use RenewPassword;
-
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'last_renew_password_at',
-        'force_renew_password',
-    ];
-
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'last_renew_password_at' => 'datetime',
-            'force_renew_password' => 'boolean',
-        ];
-    }
-}
-```
-
-#### Registro en AdminPanelProvider:
-
-```php
-use Yebor974\Filament\RenewPassword\RenewPasswordPlugin;
-
-->plugins([
-    RenewPasswordPlugin::make()
-        ->passwordExpiresIn(days: 90)  // Renovar cada 90 días
-        ->forceRenewPassword(),         // Permitir forzar renovación
-])
-```
-
-**Decisión:** Habilitar ambos modos: expiración cada 90 días y forzado por admin.
+**Impacto:** Refuerza seguridad de sesiones de usuario.
 
 ---
 
-### 5.3 filament-language-switch (bezhansalleh/filament-language-switch)
+### 6.2 filament-renew-password - Renovación de Contraseñas
 
-**Prioridad:** 🟡 MEDIA
+**Decisión:** Forzar renovación periódica de contraseñas (90 días).
 
-**Razón:** Requiere configuración en AppServiceProvider y custom theme.
+**Razón:**
 
-#### Pasos de Configuración:
+- Cumple con políticas de seguridad corporativas
+- Reduce riesgo de contraseñas comprometidas
+- Permite políticas de seguridad específicas por cliente
 
-```bash
-# 1. Instalar paquete
-composer require bezhansalleh/filament-language-switch
-```
-
-#### Actualizar theme.css:
-
-```css
-@source '../../../../vendor/bezhansalleh/filament-language-switch/resources/views/**/*.blade.php';
-```
-
-#### Configuración en AppServiceProvider:
-
-```php
-use BezhanSalleh\FilamentLanguageSwitch\LanguageSwitch;
-use BezhanSalleh\FilamentLanguageSwitch\Events\LocaleChanged;
-use Illuminate\Support\Facades\Event;
-
-public function boot(): void
-{
-    LanguageSwitch::configureUsing(function (LanguageSwitch $switch) {
-        $switch
-            ->locales(['es', 'en'])
-            ->labels([
-                'es' => 'Español',
-                'en' => 'English',
-            ])
-            ->visible(outsidePanels: true);
-    });
-
-    // Persistir preferencia del usuario
-    Event::listen(function (LocaleChanged $event) {
-        if (auth()->check()) {
-            auth()->user()->update(['locale' => $event->locale]);
-        }
-    });
-}
-```
-
-#### Migración para Locale en User:
-
-```bash
-php artisan make:migration add_locale_to_users_table
-```
-
-```php
-Schema::table('users', function (Blueprint $table) {
-    $table->string('locale', 10)->default('es')->after('email');
-});
-```
-
-**Decisión:** Soportar español e inglés inicialmente, con persistencia en base de datos.
+**Impacto:** Establece política de seguridad de contraseñas.
 
 ---
 
-## Orden de Configuración Final
+## Fase 7: Decisiones de Internacionalización
 
-1. ✅ **filament-shield** - Sistema de permisos base
-2. ✅ **filament-breezy** - Autenticación y perfil
-3. ⏳ **filament-api-service** - API REST
-4. ⏳ **filament-webhook-client** - Webhooks entrantes
-5. ⏳ **commentions** - Sistema de comentarios
-6. ⏳ **filament-apex-charts** - Gráficos
-7. ⏳ **filament-quick-create** - Creación rápida
-8. ⏳ **guava/calendar** - Calendario
-9. ⏳ **flowforge** - Kanban
-10. ✅ **filament-webhook-server** - Ya configurado
-11. ⏳ **filament-auto-logout** - Auto cierre de sesión
-12. ⏳ **filament-renew-password** - Renovación de contraseñas
-13. ⏳ **filament-language-switch** - Selector de idioma
-14. 🟢 **Resto** - Uso directo sin configuración
+### 7.1 filament-language-switch - Multi-idioma
+
+**Decisión:** Incluir selector de idioma con soporte para banderas.
+
+**Razón:**
+
+- Prepara aplicación para mercados internacionales
+- Las banderas mejoran reconocimiento visual
+- Persistencia de preferencia mejora UX
+
+**Impacto:** Habilita expansión global de la aplicación.
 
 ---
 
-## AdminPanelProvider.php - Configuración Completa
+## Fase 8: Decisiones de Monitorización (Nuevas)
 
-```php
-<?php
+### 8.1 filament-log-viewer - Visualización de Logs
 
-namespace App\Providers\Filament;
+**Decisión:** Incluir visor de logs directamente en el panel.
 
-use Carbon\Carbon;
-use Filament\Panel;
-use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
-use Filament\Http\Middleware\Authenticate;
-use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Session\Middleware\StartSession;
-// ... otros imports
+**Razón:**
 
-// Plugins
-use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
-use Jeffgreco13\FilamentBreezy\BreezyCore;
-use Rupadana\ApiService\ApiServicePlugin;
-use Awcodes\QuickCreate\QuickCreatePlugin;
-use Leandrocfe\FilamentApexCharts\FilamentApexChartsPlugin;
-use Tapp\FilamentWebhookClient\FilamentWebhookClientPlugin;
-use Marjose123\FilamentWebhookServer\WebhookPlugin;
-use Niladam\FilamentAutoLogout\AutoLogoutPlugin;
-use Yebor974\Filament\RenewPassword\RenewPasswordPlugin;
+- Elimina necesidad de acceso SSH para debugging
+- Facilita monitoreo por personal no técnico
+- Permite respuesta rápida a problemas en producción
 
-class AdminPanelProvider extends PanelProvider
-{
-    public function panel(Panel $panel): Panel
-    {
-        return $panel
-            ->default()
-            ->id('admin')
-            ->path('admin')
-            ->login()
-            ->colors([
-                'primary' => Color::Amber,
-            ])
-            ->plugins([
-                // 1. Seguridad - Permisos
-                FilamentShieldPlugin::make()
-                    ->gridColumns(['default' => 1, 'sm' => 2, 'lg' => 3])
-                    ->sectionColumnSpan(1),
-
-                // 2. Seguridad - Autenticación
-                BreezyCore::make()
-                    ->myProfile(
-                        shouldRegisterUserMenu: true,
-                        shouldRegisterNavigation: false,
-                    )
-                    ->enableTwoFactorAuthentication(force: false)
-                    ->enableSanctumTokens(),
-
-                // 3. Seguridad - Auto Logout
-                AutoLogoutPlugin::make()
-                    ->logoutAfter(Carbon::SECONDS_PER_MINUTE * 15),
-
-                // 4. Seguridad - Renovación de Contraseñas
-                RenewPasswordPlugin::make()
-                    ->passwordExpiresIn(days: 90)
-                    ->forceRenewPassword(),
-
-                // 5. API
-                ApiServicePlugin::make(),
-
-                // 6. Webhooks
-                WebhookPlugin::make()
-                    ->enableApiRoutes()
-                    ->keepLogs()
-                    ->enablePlugin(),
-                FilamentWebhookClientPlugin::make(),
-
-                // 7. UI
-                QuickCreatePlugin::make()
-                    ->slideOver()
-                    ->keyBindings(['command+shift+c', 'ctrl+shift+c']),
-
-                // 8. Charts
-                FilamentApexChartsPlugin::make(),
-            ])
-            // ... resto de configuración
-    }
-}
-```
+**Impacto:** Mejora capacidad de monitoreo y debugging.
 
 ---
 
-## Checklist de Configuración
+### 8.2 filament-activity-log - Auditoría de Cambios
 
-### Seguridad Base
+**Decisión:** Implementar tracking completo de cambios en modelos.
 
--   [ ] Ejecutar `php artisan shield:setup`
--   [ ] Ejecutar `php artisan breezy:install`
--   [ ] Añadir trait `HasRoles` al User
--   [ ] Añadir trait `TwoFactorAuthenticatable` al User
+**Razón:**
 
-### Nuevos Plugins de Seguridad
+- Requisito de cumplimiento y auditoría
+- Facilita debugging de problemas de datos
+- Proporciona historial completo para recuperación
 
--   [x] Instalar `niladam/filament-auto-logout`
--   [x] Ejecutar `php artisan filament-auto-logout:install`
--   [x] Instalar `yebor974/filament-renew-password`
--   [x] Publicar y ejecutar migraciones de renew-password
--   [x] Añadir trait `RenewPassword` e interfaz `RenewPasswordContract` al User
--   [x] Añadir columnas `last_renew_password_at` y `force_renew_password` a $fillable
-
-### Internacionalización
-
--   [x] Instalar `bezhansalleh/filament-language-switch`
--   [x] Configurar LanguageSwitch en AppServiceProvider
--   [x] Crear migración para columna `locale` en users
--   [x] Añadir @source de language-switch a theme.css
-
-### API e Integraciones
-
--   [ ] Ejecutar `php artisan install:api`
--   [ ] Publicar migraciones de commentions
-
-### Finalización
-
--   [ ] Configurar theme.css con todos los @source
--   [ ] Registrar todos los plugins en AdminPanelProvider
--   [ ] Crear factories/seeders para roles y permisos
--   [ ] Ejecutar `npm run build`
--   [ ] Ejecutar `vendor/bin/pint --dirty`
--   [ ] Ejecutar tests
+**Impacto:** Establece sistema de auditoría completo.
 
 ---
 
-_Documento generado para el proyecto Filament Starter Kit Boilerplate_
-Última actualización: Diciembre 2025
+### 8.3 filament-queueable-bulk-actions - Acciones Masivas Eficientes
+
+**Decisión:** Procesar acciones masivas en colas con notificaciones en tiempo real.
+
+**Razón:**
+
+- Mejora rendimiento para operaciones grandes
+- Evita timeouts en operaciones masivas
+- Proporciona feedback al usuario durante procesamiento
+
+**Impacto:** Optimiza operaciones a gran escala y experiencia de usuario.
+
+---
+
+## Decisiones de Arquitectura General
+
+### Estructura de Plugins
+
+**Decisión:** Organizar plugins en capas funcionales (Seguridad, UI, Datos, Integración).
+
+**Razón:**
+
+- Facilita comprensión de arquitectura
+- Permite desactivar capas completas si no se necesitan
+- Mejora mantenibilidad y documentación
+
+### Configuración por Defecto
+
+**Decisión:** Proporcionar configuración sensata por defecto para todos los plugins.
+
+**Razón:**
+
+- Reduce tiempo de configuración inicial
+- Evita errores comunes de configuración
+- Proporciona punto de partida funcional
+
+### Documentación Separada
+
+**Decisión:** Separar decisiones de configuración en archivos distintos.
+
+**Razón:**
+
+- `decisions.md` se enfoca en el PORQUÉ
+- `docs/plugins/` contiene el CÓMO detallado
+- Facilita mantenimiento y actualización
+
+---
+
+## Impacto Futuro
+
+Estas decisiones establecen una base sólida para:
+
+1. **Proyectos Empresariales**: Seguridad, auditoría, y cumplimiento
+2. **Equipos Colaborativos**: Comentarios, notificaciones, y flujos de trabajo
+3. **Aplicaciones Internacionales**: Multi-idioma y localización
+4. **Integraciones Externas**: APIs, webhooks, y servicios conectados
+5. **Escalabilidad**: Acciones en cola, exportación, y rendimiento
+
+El boilerplate resultante es verdaderamente "jumpstart ready" para una amplia variedad de proyectos Filament.
+
+---
+
+_Documento de decisiones - Última actualización: Diciembre 2025_

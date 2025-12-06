@@ -45,6 +45,53 @@ Este documento lista todos los plugins de Filament instalados en este proyecto b
 
 ---
 
+## 🔍 Monitorización y Logs
+
+### filament-log-viewer ✅
+
+- **Paquete:** `achyutn/filament-log-viewer`
+- **Descripción:** Visualiza y gestiona los logs de Laravel directamente desde el panel de Filament. Permite filtrar, buscar y monitorear errores y eventos de la aplicación.
+- **Características:**
+  - Interfaz intuitiva para visualizar logs de Laravel
+  - Filtros por nivel de log (error, warning, info, etc.)
+  - Búsqueda y paginación de entradas de log
+  - Acceso directo a logs sin necesidad de SSH
+- **Dependencias:** Ninguna adicional
+- **Documentación:** <https://github.com/achyutkneupane/filament-log-viewer>
+
+### filament-activity-log ✅
+
+- **Paquete:** `pxlrbt/filament-activity-log`
+- **Descripción:** Integración con Spatie Laravel Activitylog para mostrar un registro de actividades de modelos Eloquent en el panel de Filament.
+- **Características:**
+  - Página dedicada para visualizar actividades de modelos
+  - Integración automática con el trait `LogsActivity` de Spatie
+  - Filtrado por modelo, usuario y tipo de actividad
+  - Vista detallada de cambios en los registros
+- **Dependencias:** Requiere `spatie/laravel-activitylog` y tema personalizado
+- **Configuración:** Necesita importar estilos CSS en tema personalizado: `@import '../../../../vendor/pxlrbt/filament-activity-log/resources/css/styles.css';`
+- **Documentación:** <https://github.com/pxlrbt/filament-activity-log>
+
+---
+
+## ⚡ Acciones Masivas y Colas
+
+### filament-queueable-bulk-actions ✅
+
+- **Paquete:** `bytexr/filament-queueable-bulk-actions`
+- **Descripción:** Ejecuta acciones masivas en colas para mejorar el rendimiento y la experiencia del usuario con notificaciones en tiempo real del progreso.
+- **Características:**
+  - Procesamiento de acciones masivas en segundo plano
+  - Notificaciones en tiempo real del progreso de las operaciones
+  - Interfaz para ver historial de acciones masivas ejecutadas
+  - Configuración flexible de colas y conexiones
+  - Estados personalizables (queued, in_progress, finished, failed)
+- **Dependencias:** Requiere migración y configuración de colas
+- **Configuración:** Necesita migraciones `php artisan vendor:publish --tag="queueable-bulk-actions-migrations"` y registro del plugin con opciones personalizables
+- **Documentación:** <https://github.com/bytexr/filament-queueable-bulk-actions>
+
+---
+
 ## 🌐 Internacionalización
 
 ### filament-language-switch ✅
@@ -210,6 +257,7 @@ Estos paquetes fueron instalados automáticamente como dependencias de los plugi
 | `spatie/laravel-tags`           | Sistema de etiquetas (usado por Tags Plugin)            |
 | `spatie/laravel-webhook-client` | Cliente de webhooks (usado por Webhook Client)          |
 | `spatie/laravel-webhook-server` | Servidor de webhooks (usado por Webhook Server)         |
+| `spatie/laravel-activitylog`    | Sistema de activity log (usado por Activity Log Plugin) |
 | `laravel/sanctum`               | Autenticación API (usado por Breezy y API Service)      |
 | `maatwebsite/excel`             | Importación/exportación Excel (usado por Excel plugins) |
 | `livewire/livewire`             | Base de Filament                                        |
